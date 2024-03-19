@@ -78,6 +78,8 @@ void* sortBuckets(void* arg)
 
 int main()
 {
+    clock_t start, end;
+
     int array[ARRAY_SIZE];
     Bucket buckets[NUM_BUCKETS];
     pthread_t threads[NUM_BUCKETS];
@@ -86,6 +88,8 @@ int main()
     srand(time(NULL));
     for (int i = 0; i < ARRAY_SIZE; i++)
         array[i] = rand() % MAX_VALUE;
+
+    start = clock();
 
     for (int i = 0; i < NUM_BUCKETS; i++)
         initBucket(&buckets[i]);
@@ -101,12 +105,14 @@ int main()
 
     for (int i = 0; i < NUM_BUCKETS; i++)
         pthread_join(threads[i], NULL);
-    
+
     for (int i = 0; i < NUM_BUCKETS; i++)
         pthread_create(&threads[i], NULL, sortBuckets, (void*)&buckets[i]);
 
     for (int i = 0; i < NUM_BUCKETS; i++)
         pthread_join(threads[i], NULL);
+
+    end = clock();
 
     for (int i = 0; i < NUM_BUCKETS; i++)
     {
@@ -117,6 +123,9 @@ int main()
 
     for (int i = 0; i < NUM_BUCKETS; ++i)
         free(buckets[i].array);
+    
+    double time = end - start;
+    printf("Time: %.2lf", time);
 
     return 0;
 }
