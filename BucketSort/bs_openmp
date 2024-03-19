@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+#define ARRAY_SIZE 100
+#define NUM_BUCKETS 10
+#define MAX_VALUE 100
+
+typedef struct
+{
+    int size;
+    int capacity;
+    int* values;
+} Bucket;
+
+void initBucket(Bucket* bucket)
+{
+    bucket->capacity = ARRAY_SIZE / NUM_BUCKETS;
+    bucket->size = 0;
+    bucket->values = (int*)malloc(bucket->capacity * sizeof(int));
+}
+
+void addToBucket(Bucket* bucket, int value)
+{
+    if (bucket->size >= bucket->capacity)
+    {
+        bucket->capacity *= 2;
+        bucket->values = (int*)realloc(bucket->values, bucket->capacity * sizeof(int));
+    }
+    bucket->values[bucket->size++] = value;
+}
+
+int compare(const void* a, const void* b)
+{
+    return (*(int*)a - *(int*)b);
+}
+
+int main()
+{
+    int array[ARRAY_SIZE];
+    Bucket buckets[NUM_BUCKETS];
+
+    for (int i = 0; i < ARRAY_SIZE; ++i)
+        array[i] = rand() % MAX_VALUE;
+
+    for (int i = 0; i < NUM_BUCKETS; ++i)
+        initBucket(&buckets[i]);
+
+    #pragma omp parallel for
+    for (int i = 0; i < ARRAY_SIZE; ++i)
+    {
+        int bucketIdx = array[i] / (MAX_VALUE / NUM_BUCKETS);
+        #pragma omp critical
+        addToBucket(&buckets[bucketIdx], array[i]);
+    }
+
+    #pragma omp parallel for
+    for (int i = 0; i < NUM_BUCKETS; i++)
+        qsort(buckets[i].values, buckets[i].size, sizeof(int), compare);
+
+    int index = 0;
+    for (int i = 0; i < NUM_BUCKETS; ++i)
+    {
+        for (int j = 0; j < buckets[i].size; ++j)
+            array[index++] = buckets[i].values[j];
+        free(buckets[i].values); // Free the memory allocated for bucket values
+    }
+
+    for (int i = 0; i < ARRAY_SIZE; i++)
+        printf("%d ", array[i]);
+
+    printf("\n");
+
+    return 0;
+}
